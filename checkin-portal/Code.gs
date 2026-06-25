@@ -1,10 +1,7 @@
 const CONFIG = {
-  // Optional: paste the waiver spreadsheet ID here if this Apps Script project is
-  // not bound directly to the waiver spreadsheet. If left blank, the script will
-  // use the active/bound spreadsheet.
+  // paste spreadsheet if not linked to real spreadsheet
   WAIVER_SHEET_ID: '',
-  // Optional: set to the exact waiver response tab name. If left blank, the first
-  // sheet in the waiver spreadsheet is used.
+  // set to the exact waiver response tab name
   WAIVER_TAB: ''
 };
 
@@ -18,10 +15,6 @@ function doGet() {
 
 // fetches and organizes all the waiver data
 function getSheetData() {
-  return getWaiverData();
-}
-
-function getWaiverData() {
   const sheet = getWaiverSheet_();
   const data = sheet.getDataRange().getDisplayValues();
   const teams = {};
