@@ -1,347 +1,585 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/easyqrcodejs@4.6.1/dist/easy.qrcode.min.js"></script>
   <style>
-    :root {
-      --navy: #1c3557;
-      --red: #c62828;
-      --ink: #1f2933;
-      --muted: #667085;
-      --line: #d9dee7;
-      --paper: #ffffff;
-      --page: #f4f6f8;
+    html[data-theme="dark"] {
+      background: #060e1a;
+      color: #dde8f5;
     }
 
-    * {
+    html[data-theme="light"] {
+      background: #f0f3f7;
+      color: #0f1d2e;
+    }
+
+    *, *::before, *::after {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      padding: 24px 16px;
-      background: var(--page);
-      color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
+      padding: 32px 16px 40px;
+      font-family: Arial, sans-serif;
+      background: inherit;
+      color: inherit;
     }
 
-    .container {
+    .card {
       width: 100%;
-      max-width: 420px;
-      margin: 0 auto;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 8px 24px rgba(28, 53, 87, 0.08);
+      max-width: 400px;
+      margin: 0 auto 12px;
+      border-radius: 14px;
+      padding: 28px 24px 24px;
+      background: #0d1b2e;
+      border: 1px solid #1a3050;
+    }
+
+    html[data-theme="light"] .card {
+      background: #ffffff;
+      border-color: #d4dbe6;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 22px;
     }
 
     h1 {
-      margin: 0 0 6px;
-      color: var(--navy);
-      font-size: 24px;
-      line-height: 1.2;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.15;
     }
 
     .subtitle {
-      margin: 0 0 22px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.4;
+      margin-top: 4px;
+      color: #7a9ab8;
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    html[data-theme="light"] .subtitle {
+      color: #556677;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding-top: 3px;
+      user-select: none;
+    }
+
+    .theme-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #455d78;
+    }
+
+    .toggle-wrap {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .toggle-wrap input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 99px;
+      background: #1a3050;
+      transition: background 150ms ease;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #455d78;
+      transition: transform 150ms ease, background 150ms ease;
+    }
+
+    .toggle-wrap input:checked + .toggle-track {
+      background: #c62828;
+    }
+
+    .toggle-wrap input:checked ~ .toggle-thumb {
+      transform: translateX(16px);
+      background: #fff;
+    }
+
+    .status {
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #091a2e;
+      color: #6699bb;
+      border: 1px solid #1a3050;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    html[data-theme="light"] .status {
+      background: #eef3f8;
+      color: #1c3557;
+      border-color: #d4dbe6;
+    }
+
+    .status.error {
+      background: #180808;
+      color: #e07070;
+      border-color: #4a1010;
+    }
+
+    html[data-theme="light"] .status.error {
+      background: #fff0f0;
+      color: #991818;
+      border-color: #eeb8b8;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field--hidden {
+      display: none !important;
+    }
+
+    .field--visible {
+      display: block;
+      animation: slideDown 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     label {
       display: block;
-      margin: 0 0 6px;
-      color: var(--ink);
-      font-size: 13px;
+      margin-bottom: 6px;
+      color: #7a9ab8;
+      font-size: 11px;
       font-weight: 700;
-      text-align: left;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
     }
 
-    select,
-    button {
-      width: 100%;
-      min-height: 48px;
-      margin: 0 0 16px;
-      border-radius: 8px;
-      font-size: 16px;
+    html[data-theme="light"] label {
+      color: #556677;
     }
 
     select {
-      padding: 0 12px;
-      background: #fff;
-      border: 1px solid #bcc5d1;
-      color: var(--ink);
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      background: #091526;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      color: #dde8f5;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    html[data-theme="light"] select {
+      background: #ffffff;
+      border-color: #b8c4d2;
+      color: #0f1d2e;
+    }
+
+    select:focus {
+      border-color: #c62828;
+      outline: none;
     }
 
     select:disabled {
-      background: #f1f3f5;
-      color: #8a94a3;
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-wrap {
+      margin-top: 4px;
     }
 
     button {
+      width: 100%;
+      height: 48px;
       border: 0;
-      background: var(--red);
+      border-radius: 8px;
+      background: #c62828;
       color: #fff;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
     }
 
+    button:hover:not(:disabled) {
+      background: #d93333;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
     button:disabled {
-      background: #aeb6c2;
+      opacity: 0.4;
       cursor: not-allowed;
-    }
-
-    .status {
-      margin: 0 0 16px;
-      padding: 12px;
-      border-radius: 8px;
-      background: #eef3f8;
-      color: var(--navy);
-      font-size: 14px;
-      line-height: 1.4;
-      text-align: left;
-    }
-
-    .status.error {
-      background: #fff1f1;
-      color: #9f1d1d;
-      border: 1px solid #f0b8b8;
     }
 
     #ticket-view {
       display: none;
-      text-align: center;
+    }
+
+    #ticket-view.visible {
+      display: block;
+      animation: ticketEnter 480ms cubic-bezier(0.34, 1.46, 0.64, 1) both;
+    }
+
+    @keyframes ticketEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .ticket-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .ticket-event-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #455d78;
+    }
+
+    html[data-theme="light"] .ticket-event-label {
+      color: #556677;
     }
 
     .clock {
-      display: inline-block;
-      margin-bottom: 14px;
-      padding: 6px 10px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      color: #455d78;
+      background: #0f2040;
+      border: 1px solid #1a3050;
+      padding: 4px 10px;
       border-radius: 6px;
+    }
+
+    html[data-theme="light"] .clock {
+      color: #1c3557;
       background: #eef3f8;
-      color: var(--navy);
-      font-family: Consolas, Monaco, monospace;
-      font-size: 15px;
+      border-color: #d4dbe6;
+    }
+
+    .divider {
+      height: 1px;
+      background: #1a3050;
+      margin: 0 0 20px;
     }
 
     .ticket-name {
-      margin: 6px 0 4px;
-      color: #111827;
-      font-size: 26px;
+      font-size: 30px;
       font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
       text-transform: uppercase;
+      margin-bottom: 4px;
     }
 
     .ticket-team {
-      margin: 0 0 18px;
-      color: var(--red);
-      font-size: 17px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 600;
+      color: #c62828;
+      margin-bottom: 22px;
     }
 
     #qr-code {
       display: flex;
       justify-content: center;
-      margin: 16px auto;
+      margin-bottom: 18px;
     }
 
-    .instructions {
-      margin: 18px 0 0;
-      color: var(--muted);
+    #qr-code canvas,
+    #qr-code img {
+      display: block;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .ticket-note {
+      border-top: 1px solid #1a3050;
+      padding-top: 14px;
+      color: #7a9ab8;
       font-size: 12px;
-      line-height: 1.5;
-      text-align: left;
+      line-height: 1.65;
+    }
+
+    html[data-theme="light"] .ticket-note {
+      color: #556677;
+      border-color: #d4dbe6;
     }
 
     .footer {
-      max-width: 420px;
-      margin: 18px auto 0;
-      color: #7b8490;
+      max-width: 400px;
+      margin: 0 auto;
+      padding-top: 10px;
+      color: #455d78;
       font-size: 11px;
       text-align: center;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
+      }
+    }
   </style>
-  <script src="https://unpkg.com/easyqrcodejs@4.6.1/dist/easy.qrcode.min.js"></script>
 </head>
 <body>
-  <main class="container" id="setup-view">
-    <h1>MDBF 2026 Check-in</h1>
-    <p class="subtitle">Choose your team, then your name.</p>
-
-    <div id="status-msg" class="status">Loading waiver list...</div>
-
-    <label for="team-select">Team</label>
-    <select id="team-select" onchange="loadNames()" disabled>
-      <option value="">Select team</option>
-    </select>
-
-    <label for="name-select">Name</label>
-    <select id="name-select" onchange="updateButtonState()" disabled>
-      <option value="">Select name</option>
-    </select>
-
-    <button id="generate-btn" onclick="generateTicket()" disabled>Create pass</button>
+  <main class="card" id="setup-view">
+    <div class="card-header">
+      <div>
+        <h1>MDBF 2026</h1>
+        <p class="subtitle">Participant check-in</p>
+      </div>
+      <div class="theme-toggle" title="Switch theme">
+        <span class="theme-label">Dark</span>
+        <label class="toggle-wrap" aria-label="Toggle light mode">
+          <input type="checkbox" id="theme-toggle-input" onchange="toggleTheme(this)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <span class="theme-label">Light</span>
+      </div>
+    </div>
+    <div id="status-msg" class="status">Loading waiver list…</div>
+    <div class="field field--hidden" id="field-team">
+      <label for="team-select">Team</label>
+      <select id="team-select" onchange="loadNames()" disabled>
+        <option value="">Select your team</option>
+      </select>
+    </div>
+    <div class="field field--hidden" id="field-name">
+      <label for="name-select">Name</label>
+      <select id="name-select" onchange="onNameChange()" disabled>
+        <option value="">Select your name</option>
+      </select>
+    </div>
+    <div class="btn-wrap field--hidden" id="field-btn">
+      <button id="generate-btn" onclick="generateTicket()" disabled>
+        Get my pass →
+      </button>
+    </div>
   </main>
-
-  <section class="container" id="ticket-view">
-    <div class="clock" id="live-clock">00:00:00</div>
+  <section class="card" id="ticket-view">
+    <div class="ticket-meta">
+      <div class="ticket-event-label">Milwaukee Dragon Boat Festival</div>
+      <div class="clock" id="live-clock">00:00:00</div>
+    </div>
+    <div class="divider"></div>
     <div class="ticket-name" id="display-name"></div>
     <div class="ticket-team" id="display-team"></div>
     <div id="qr-code"></div>
-    <p class="instructions">
-      <strong>Gate instructions:</strong><br>
-      Show this pass with a matching government-issued photo ID to receive your wristband.
-    </p>
+    <div class="ticket-note">
+      <strong>At the gate:</strong> show this pass alongside a government-issued
+      photo ID to receive your wristband.
+    </div>
   </section>
-
-  <div class="footer">Check-in portal developed for MDBF by Anson Li</div>
-
+  <div class="footer">Check-in portal · MDBF 2026 · Built by Anson Li</div>
   <script>
-    let waiverData = {};
+    var statusMsg = document.getElementById('status-msg');
+    var teamSelect = document.getElementById('team-select');
+    var nameSelect = document.getElementById('name-select');
+    var generateBtn = document.getElementById('generate-btn');
+    var setupView = document.getElementById('setup-view');
+    var ticketView = document.getElementById('ticket-view');
+    var displayName = document.getElementById('display-name');
+    var displayTeam = document.getElementById('display-team');
+    var qrCode = document.getElementById('qr-code');
+    var waiverData = {};
 
-    window.onload = () => {
+    window.onload = function () {
       startClock();
       loadWaiverList();
     };
 
-    function loadWaiverList() {
-      setLoadingState('Loading waiver list...');
+    function toggleTheme(checkbox) {
+      document.documentElement.setAttribute('data-theme', checkbox.checked ? 'light' : 'dark');
+    }
 
-      if (!window.google || !google.script || !google.script.run) {
-        handleWaiverError({ message: 'This page must be opened from the deployed check-in link.' });
+    function loadWaiverList() {
+      setStatus('Loading waiver list…', false);
+      if (!window.google || !window.google.script || !window.google.script.run) {
+        handleError({ message: 'Open this page from the deployed check-in link.' });
         return;
       }
-
-      google.script.run
-        .withSuccessHandler(populateTeams)
-        .withFailureHandler(handleWaiverError)
-        .getSheetData();
+      google.script.run.withSuccessHandler(populateTeams).withFailureHandler(handleError).getSheetData();
     }
 
     function populateTeams(data) {
       waiverData = data || {};
-      const teams = Object.keys(waiverData).sort((a, b) => a.localeCompare(b));
+      clearSelect(teamSelect, 'Select your team');
+      clearSelect(nameSelect, 'Select your name');
 
-      resetSelect('team-select', 'Select team');
-      resetSelect('name-select', 'Select name');
+      var teams = [];
+      for (var team in waiverData) {
+        if (waiverData.hasOwnProperty(team)) {
+          teams.push(team);
+        }
+      }
+      teams.sort();
 
-      if (teams.length === 0) {
-        handleWaiverError({ message: 'No teams were found in the waiver list. Please ask check-in staff for help.' });
+      if (!teams.length) {
+        handleError({ message: 'No teams found. Ask check-in staff for help.' });
         return;
       }
 
-      teams.forEach(team => addOption('team-select', team, team));
+      for (var i = 0; i < teams.length; i++) {
+        addOption(teamSelect, teams[i], teams[i]);
+      }
 
-      setStatus(`Loaded ${teams.length} team${teams.length === 1 ? '' : 's'}.`);
-      document.getElementById('team-select').disabled = false;
-      document.getElementById('name-select').disabled = true;
-      updateButtonState();
+      setStatus(teams.length + ' team' + (teams.length === 1 ? '' : 's') + ' loaded.', false);
+      teamSelect.disabled = false;
+      show('field-team');
+      hide('field-name');
+      hide('field-btn');
     }
 
     function loadNames() {
-      const team = document.getElementById('team-select').value;
-      const names = team && waiverData[team] ? waiverData[team] : [];
+      var team = teamSelect.value;
+      clearSelect(nameSelect, 'Select your name');
+      if (!team || !waiverData[team]) {
+        nameSelect.disabled = true;
+        hide('field-name');
+        hide('field-btn');
+        return;
+      }
+      var list = waiverData[team];
+      for (var i = 0; i < list.length; i++) {
+        addOption(nameSelect, list[i], list[i]);
+      }
+      nameSelect.disabled = false;
+      show('field-name');
+      generateBtn.disabled = true;
+      hide('field-btn');
+    }
 
-      resetSelect('name-select', 'Select name');
-      names.forEach(name => addOption('name-select', name, name));
-
-      document.getElementById('name-select').disabled = names.length === 0;
-      updateButtonState();
+    function onNameChange() {
+      var enabled = teamSelect.value && nameSelect.value;
+      generateBtn.disabled = !enabled;
+      if (enabled) {
+        show('field-btn');
+      } else {
+        hide('field-btn');
+      }
     }
 
     function generateTicket() {
-      const team = document.getElementById('team-select').value;
-      const name = document.getElementById('name-select').value;
-
+      var team = teamSelect.value;
+      var name = nameSelect.value;
       if (!team || !name) {
-        setStatus('Choose both a team and a name before creating a pass.', true);
+        setStatus('Select both a team and a name first.', true);
         return;
       }
-
-      document.getElementById('setup-view').style.display = 'none';
-      document.getElementById('ticket-view').style.display = 'block';
-      document.getElementById('display-name').textContent = name;
-      document.getElementById('display-team').textContent = team;
-
-      const qrContainer = document.getElementById('qr-code');
-      qrContainer.innerHTML = '';
-
-      new QRCode(qrContainer, {
-        text: `MDBF 2026 - ${name} - ${team}`,
-        width: 250,
-        height: 250,
+      setupView.style.display = 'none';
+      ticketView.style.display = 'block';
+      if (ticketView.classList) {
+        ticketView.classList.add('visible');
+      }
+      displayName.textContent = name;
+      displayTeam.textContent = team;
+      qrCode.innerHTML = '';
+      new QRCode(qrCode, {
+        text: 'MDBF 2026 | ' + name + ' | ' + team,
+        width: 220,
+        height: 220,
         colorDark: '#1C3557',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H,
-        logo: 'https://horizons-cdn.hostinger.com/e22d90ec-431c-427c-8f3e-ca594edfa29b/f27fbe95b079b69cee049756ab048b60.png',
-        logoWidth: 60,
-        logoHeight: 60,
-        logoBackgroundColor: '#ffffff',
-        logoBackgroundTransparent: false
+        correctLevel: QRCode.CorrectLevel.H
       });
     }
 
-    function handleWaiverError(error) {
-      console.error('Waiver load failed:', error);
-      const message = error && error.message
-        ? error.message
-        : 'Waiver list could not be loaded. Please ask check-in staff for help.';
-      setStatus(message, true);
+    function handleError(error) {
+      var msg = 'Could not load waiver list. Ask check-in staff for help.';
+      if (error && error.message) {
+        msg = error.message;
+      }
+      setStatus(msg, true);
       waiverData = {};
-      resetSelect('team-select', 'Select team');
-      resetSelect('name-select', 'Select name');
-      document.getElementById('team-select').disabled = true;
-      document.getElementById('name-select').disabled = true;
-      updateButtonState();
+      clearSelect(teamSelect, 'Select your team');
+      clearSelect(nameSelect, 'Select your name');
+      teamSelect.disabled = true;
+      hide('field-name');
+      hide('field-btn');
     }
 
-    function setLoadingState(message) {
-      setStatus(message, false);
-      resetSelect('team-select', 'Select team');
-      resetSelect('name-select', 'Select name');
-      document.getElementById('team-select').disabled = true;
-      document.getElementById('name-select').disabled = true;
-      updateButtonState();
+    function show(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('field--hidden');
+      el.classList.add('field--visible');
+    }
+
+    function hide(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('field--visible');
+      el.classList.add('field--hidden');
     }
 
     function setStatus(message, isError) {
-      const status = document.getElementById('status-msg');
-      status.textContent = message;
-      status.className = isError ? 'status error' : 'status';
+      statusMsg.textContent = message;
+      statusMsg.className = isError ? 'status error' : 'status';
     }
 
-    function resetSelect(id, placeholder) {
-      const select = document.getElementById(id);
+    function clearSelect(select, placeholder) {
       select.innerHTML = '';
-      addOption(id, '', placeholder);
+      addOption(select, '', placeholder);
     }
 
-    function addOption(selectId, value, text) {
-      const option = document.createElement('option');
+    function addOption(select, value, text) {
+      var option = document.createElement('option');
       option.value = value;
       option.textContent = text;
-      document.getElementById(selectId).appendChild(option);
-    }
-
-    function updateButtonState() {
-      const team = document.getElementById('team-select').value;
-      const name = document.getElementById('name-select').value;
-      document.getElementById('generate-btn').disabled = !team || !name;
+      select.appendChild(option);
     }
 
     function startClock() {
-      const clockElement = document.getElementById('live-clock');
-      if (!clockElement) return;
-
-      const updateClock = () => {
-        clockElement.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-      };
-
-      updateClock();
-      setInterval(updateClock, 1000);
+      var clock = document.getElementById('live-clock');
+      if (!clock) return;
+      function update() {
+        clock.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+      }
+      update();
+      setInterval(update, 1000);
     }
   </script>
 </body>
