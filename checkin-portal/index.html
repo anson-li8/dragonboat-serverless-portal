@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+</head>
+<body>
+  <div class="container" id="setup-view">
+    <h1>MDBF 2026 Pass</h1>
+    <p class="subtitle">Select your team and name below.</p>
+    <div id="loading-msg" class="loading">Loading waivers...</div>
+    <select id="team-select" style="display:none;" onchange="loadNames()">
+      <option value="">-- Select Your Team --</option>
+    </select>
+    <select id="name-select" style="display:none;">
+      <option value="">-- Select Your Name --</option>
+    </select>    
+    <button id="generate-btn" style="display:none;" onclick="generateTicket()">Get QR Pass</button>
+  </div>
+  <div class="footer">Check-in portal developed for MDBF by Anson Li</div>
+</body>
+</html>
