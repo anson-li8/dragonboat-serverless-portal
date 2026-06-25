@@ -27,5 +27,110 @@
     </p>
   </div>
   <div class="footer">Check-in portal developed for MDBF by Anson Li</div>
+  <script>
+    let waiverData = {};
+    // once loaded, immediately ask Google for data
+    // handle errors if the data fails to load
+    function handleWaiverError(error) {
+      console.error('Waiver load failed:', error);
+      const loadingMsg = document.getElementById('loading-msg');
+      if (loadingMsg) {
+        loadingMsg.textContent = 'Unable to load waivers. Please try again later.';
+        loadingMsg.style.color = '#c00';
+      }
+      const teamSelect = document.getElementById('team-select');
+      const nameSelect = document.getElementById('name-select');
+      const generateBtn = document.getElementById('generate-btn');
+      if (teamSelect) teamSelect.style.display = 'none';
+      if (nameSelect) nameSelect.style.display = 'none';
+      if (generateBtn) generateBtn.style.display = 'none';
+      waiverData = {};
+    }
+    window.onload = () => {
+      google.script.run.withSuccessHandler(populateTeams)
+        .withFailureHandler(handleWaiverError)
+        .getWaiverData();
+      startClock();
+    }
+    // fill the first dropdown
+    function populateTeams(data) {
+      waiverData = data;
+      const teamSelect = document.getElementById('team-select');
+      if (!teamSelect) return;
+      // clear existing options
+      teamSelect.innerHTML = '<option value="">-> Select Your Team <-</option>';
+      for (const team in waiverData) {
+        let opt = document.createElement('option');
+        opt.value = team;
+        opt.innerHTML = team;
+        teamSelect.appendChild(opt);
+      }
+      document.getElementById('loading-msg').style.display = 'none';
+      teamSelect.style.display = 'block';
+      document.getElementById('name-select').style.display = 'block';
+      document.getElementById('generate-btn').style.display = 'block';
+    }
+    // fill second dropdown based on team
+    function loadNames() {
+      const teamSelect = document.getElementById('team-select');
+      const nameSelect = document.getElementById('name-select');
+      if (!teamSelect || !nameSelect) return;
+      const selectedTeam = teamSelect.value;
+      // clear existing options
+      nameSelect.innerHTML = '<option value="">-> Select Your Name <-</option>';
+      if (selectedTeam && waiverData[selectedTeam]) {
+        waiverData[selectedTeam].forEach(name => {
+          let option = document.createElement('option');
+          option.value = name;
+          option.innerHTML = name;
+          nameSelect.appendChild(option);
+        });
+      }
+    }
+    // generate the ticket
+    function generateTicket() {
+      const team = document.getElementById('team-select').value;
+      const name = document.getElementById('name-select').value;
+      
+      if (!team || !name) {
+        alert("Please select both your Team and your Name.");
+        return;
+      }
+      // Hide setup, show ticket
+      document.getElementById('setup-view').style.display = 'none';
+      document.getElementById('ticket-view').style.display = 'block';
+      // Populate text
+      document.getElementById('display-name').innerText = name;
+      document.getElementById('display-team').innerText = team;
+      // clear any previous QR code
+      document.getElementById('qr-code').innerHTML = '';
+      // generate native QR Code with Logo
+      const qrOptions = {
+        text: `MDBF 2026 - ${name}`,
+        width: 250,
+        height: 250,
+        colorDark : "#1C3557", // MDBF Navy Blue
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H, // MUST be 'H' (High) so the logo doesn't break the scan
+        logo: "https://horizons-cdn.hostinger.com/e22d90ec-431c-427c-8f3e-ca594edfa29b/f27fbe95b079b69cee049756ab048b60.png", // Direct link to your logo
+        logoWidth: 60,
+        logoHeight: 60,
+        logoBackgroundColor: '#ffffff',
+        logoBackgroundTransparent: false
+      };
+      // draw on screen
+      new QRCode(document.getElementById("qr-code"), qrOptions);
+    }
+    // live clock
+    function startClock() {
+      const clockElement = document.getElementById('live-clock');
+      if (!clockElement) return;
+      setInterval(() => {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+        clockElement.textContent = timeString;
+      }, 1000);
+    }
+  </script>
 </body>
 </html>
