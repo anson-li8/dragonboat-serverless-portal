@@ -4,9 +4,11 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://unpkg.com/easyqrcodejs@4.6.1/dist/easy.qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     html[data-theme="dark"] {
-      background: #060e1a;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, #0d2547 0%, #060e1a 65%);
       color: #dde8f5;
     }
 
@@ -24,24 +26,10 @@
     body {
       min-height: 100vh;
       padding: 32px 16px 40px;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: inherit;
+      position: relative;
       color: inherit;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 12px;
-      border-radius: 14px;
-      padding: 28px 24px 24px;
-      background: #0d1b2e;
-      border: 1px solid #1a3050;
-    }
-
-    html[data-theme="light"] .card {
-      background: #ffffff;
-      border-color: #d4dbe6;
     }
 
     .card-header {
@@ -120,7 +108,7 @@
     }
 
     .toggle-wrap input:checked + .toggle-track {
-      background: #c62828;
+      background: #dc2626;
     }
 
     .toggle-wrap input:checked ~ .toggle-thumb {
@@ -201,6 +189,7 @@
       font-size: 15px;
       font-weight: 500;
       cursor: pointer;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
     }
 
     html[data-theme="light"] select {
@@ -210,8 +199,9 @@
     }
 
     select:focus {
-      border-color: #c62828;
+      border-color: #dc2626;
       outline: none;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
     }
 
     select:disabled {
@@ -228,7 +218,9 @@
       height: 48px;
       border: 0;
       border-radius: 8px;
-      background: #c62828;
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 4px 20px rgba(220, 38, 38, 0.35);
+      transition: all 200ms ease;
       color: #fff;
       font-size: 15px;
       font-weight: 700;
@@ -236,7 +228,8 @@
     }
 
     button:hover:not(:disabled) {
-      background: #d93333;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      box-shadow: 0 6px 28px rgba(220, 38, 38, 0.5);
     }
 
     button:active:not(:disabled) {
@@ -262,6 +255,62 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    #ticket-view {
+      position: relative;
+      overflow: hidden; /* Keeps the shine inside the card */
+    }
+
+    /* The Holographic Shine Effect */
+    #ticket-view::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        to bottom right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.05) 60%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(30deg) translateY(-100%);
+      animation: shine 4s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none; /* Lets you click through it */
+    }
+
+    @keyframes shine {
+      0% { transform: rotate(30deg) translateY(-100%); }
+      100% { transform: rotate(30deg) translateY(100%); }
+    }
+
+    .card {
+      width: 100%;
+      position: relative; z-index: 1;
+      max-width: 400px;
+      margin: 0 auto 12px;
+      border-radius: 16px;
+      padding: 28px 24px 24px;
+      background: rgba(13, 27, 46, 0.7); /* Transparent background */
+      backdrop-filter: blur(12px); /* The magic frosted glass blur */
+      -webkit-backdrop-filter: blur(12px); /* Safari support */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    #ticket-view.visible {
+    border-color: rgba(220, 38, 38, 0.25);
+    box-shadow: 0 0 40px rgba(220, 38, 38, 0.08), 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.15);
+  }
+
+    html[data-theme="light"] .card {
+      background: rgba(255, 255, 255, 0.85);
+      border-color: rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    }
+
     .ticket-meta {
       display: flex;
       align-items: center;
@@ -282,7 +331,7 @@
     }
 
     .clock {
-      font-family: Consolas, monospace;
+      font-family: 'JetBrains Mono', Consolas, monospace;
       font-size: 13px;
       color: #455d78;
       background: #0f2040;
@@ -304,7 +353,7 @@
     }
 
     .ticket-name {
-      font-size: 30px;
+      font-size: clamp(28px, 9vw, 40px);
       font-weight: 800;
       letter-spacing: -0.03em;
       line-height: 1.05;
@@ -315,7 +364,8 @@
     .ticket-team {
       font-size: 15px;
       font-weight: 600;
-      color: #c62828;
+      color: #dc2626;
+      text-shadow: 0 0 24px rgba(220, 38, 38, 0.45);
       margin-bottom: 22px;
     }
 
@@ -350,9 +400,21 @@
       max-width: 400px;
       margin: 0 auto;
       padding-top: 10px;
-      color: #455d78;
-      font-size: 11px;
+      color: #7a9ab8;
+      font-size: 12px;
       text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 8px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -413,7 +475,10 @@
       photo ID to receive your wristband.
     </div>
   </section>
-  <div class="footer">Check-in portal for MDBF 2026 - Developed by Anson - Good luck!</div>
+  <div class="footer">
+    MDBF 2026 Check-in <br>
+    Developed by Anson. Good luck!
+  </div>
   <script>
     var statusMsg = document.getElementById('status-msg');
     var teamSelect = document.getElementById('team-select');
@@ -509,27 +574,37 @@
         setStatus('Select both a team and a name first.', true);
         return;
       }
-      setupView.style.display = 'none';
-      ticketView.style.display = 'block';
-      if (ticketView.classList) {
-        ticketView.classList.add('visible');
-      }
-      displayName.textContent = name;
-      displayTeam.textContent = team;
-      qrCode.innerHTML = '';
-      new QRCode(qrCode, {
-        text: 'MDBF 2026 | ' + name + ' | ' + team,
-        width: 220,
-        height: 220,
-        colorDark: '#1C3557',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H,
-        logo: 'https://horizons-cdn.hostinger.com/e22d90ec-431c-427c-8f3e-ca594edfa29b/f27fbe95b079b69cee049756ab048b60.png',
-        logoWidth: 90,
-        logoHeight: 45,
-        logoBackgroundColor: '#ffffff',
-        logoBackgroundTransparent: false
-      });
+      
+      // Smooth fade out
+      setupView.style.transition = 'opacity 0.3s ease';
+      setupView.style.opacity = '0';
+      
+      setTimeout(function() {
+        setupView.style.display = 'none';
+        ticketView.style.display = 'block';
+        if (ticketView.classList) {
+          ticketView.classList.add('visible');
+        }
+        
+        // ... rest of your QR code generation code stays the exact same!
+        displayName.textContent = name;
+        displayTeam.textContent = team;
+        qrCode.innerHTML = '';
+        qrCode.innerHTML = '';
+        new QRCode(qrCode, {
+          text: 'MDBF 2026 | ' + name + ' | ' + team,
+          width: 220,
+          height: 220,
+          colorDark: '#1C3557',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H,
+          logo: 'https://horizons-cdn.hostinger.com/e22d90ec-431c-427c-8f3e-ca594edfa29b/f27fbe95b079b69cee049756ab048b60.png',
+          logoWidth: 90,
+          logoHeight: 45,
+          logoBackgroundColor: '#ffffff',
+          logoBackgroundTransparent: false
+        });
+      }, 300);
     }
 
     function handleError(error) {
