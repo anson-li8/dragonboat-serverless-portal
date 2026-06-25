@@ -1,85 +1,242 @@
 const CONFIG = {
-  // paste spreadsheet if not linked to real spreadsheet
-  WAIVER_SHEET_ID: '',
-  // set to the exact waiver response tab name
-  WAIVER_TAB: ''
+  WAIVER_SHEET_ID: 'YOUR_SHEET_ID_HERE',
+  WAIVER_TAB: 'Sheet1'
 };
 
-// serves webpage
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
-      .setTitle('MDBF 2026 Check-in')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1'); // mobile friendly
-}
-
-// fetches and organizes all the waiver data
-function getSheetData() {
-  const sheet = getWaiverSheet_();
-  const data = sheet.getDataRange().getDisplayValues();
-  const teams = {};
-  if (data.length < 2) return teams;
-
-  const header = data[0].map(value => String(value || '').trim().toLowerCase());
-  const teamCol = findColumn_(header, ['team name', 'team/company name', 'team/company', 'team', 'company/organization', 'organization'], 1);
-  const firstCol = findColumn_(header, ['first name', 'firstname', 'given name'], 3);
-  const lastCol = findColumn_(header, ['last name', 'lastname', 'surname', 'family name'], 4);
-
-  // loop through rows (skip header)
-  for (let i = 1; i < data.length; i++) {
-    const team = String(data[i][teamCol] || '').trim();
-    const first = String(data[i][firstCol] || '').trim();
-    const last = String(data[i][lastCol] || '').trim();
-    // capitalize names properly
-    const formatName = (str) => String(str || '').trim().split(/\s+/).map(part =>
-      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-    ).join(' ');
-    const fullName = first && last ? `${formatName(first)} ${formatName(last)}` : '';
-    if (team && fullName) {
-      // Initialize the team in the object if it doesn't exist
-      if (!teams[team]) {
-        teams[team] = new Set(); // Use Set to avoid duplicates
-      }
-      teams[team].add(fullName); // add the full name to the team's Set
+const SOURCES = [
+  {
+    name: 'active spreadsheet',
+    type: 'active',
+    tab: '',
+    columns: { team: 1, first: 13, last: 14 }, // B, N, O
+    headers: {
+      team: ['Sponsoring Organization - Team Name'],
+      first: ['Participant’s First Name'],
+      last: ['Participants Last Name']
+    }
+  },
+  {
+    name: 'configured waiver spreadsheet',
+    type: 'config',
+    tab: CONFIG.WAIVER_TAB,
+    columns: { team: 1, first: 3, last: 4 }, // B, D, E
+    headers: {
+      team: ['team name', 'team/company name', 'team/company', 'team', 'company/organization', 'organization'],
+      first: ['first name', 'firstname', 'given name'],
+      last: ['last name', 'lastname', 'surname', 'family name']
     }
   }
-  // convert Sets to Arrays, sort them alphabetically, and remove duplicates
-  const result = {};
-  Object.keys(teams).sort().forEach(t => {
-    result[t] = Array.from(teams[t]).sort();
+];
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('MDBF 2026 Check-in')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getSheetData() {
+  return getWaiverData();
+}
+
+function getWaiverData() {
+  const attempts = SOURCES.map(loadSource_);
+  const usable = attempts.find(attempt => attempt.ok && Object.keys(attempt.teams).length > 0);
+
+  if (usable) {
+    if (attempts[0] !== usable) console.warn('Using fallback waiver source:', JSON.stringify(summarizeAttempts_(attempts)));
+    return usable.teams;
+  }
+
+  console.error('No usable waiver source:', JSON.stringify(summarizeAttempts_(attempts)));
+  throw new Error('Waiver list could not be loaded. Please ask check-in staff to verify the waiver spreadsheet connection.');
+}
+
+function debugCheckinPortal() {
+  const attempts = SOURCES.map(loadSource_);
+  const selected = attempts.find(attempt => attempt.ok && Object.keys(attempt.teams).length > 0);
+  const debug = {
+    generatedAt: new Date().toISOString(),
+    selectedSource: selected ? selected.source : null,
+    teamCount: selected ? Object.keys(selected.teams).length : 0,
+    teamsPreview: selected ? Object.keys(selected.teams).slice(0, 20) : [],
+    sources: attempts.map(attempt => ({
+      source: attempt.source,
+      ok: attempt.ok,
+      error: attempt.error || null,
+      spreadsheetName: attempt.spreadsheetName || null,
+      spreadsheetId: attempt.spreadsheetId || null,
+      sheetName: attempt.sheetName || null,
+      rows: attempt.rows || 0,
+      columns: attempt.columns || 0,
+      selectedColumns: attempt.selectedColumns || null,
+      teamCount: Object.keys(attempt.teams || {}).length,
+      teamsPreview: Object.keys(attempt.teams || {}).slice(0, 20),
+      preview: attempt.preview || [],
+      warnings: attempt.warnings || []
+    }))
+  };
+
+  console.log(JSON.stringify(debug, null, 2));
+  return debug;
+}
+
+function summarizeAttempts_(attempts) {
+  return attempts.map(attempt => ({
+    source: attempt.source,
+    ok: attempt.ok,
+    error: attempt.error || null,
+    sheetName: attempt.sheetName || null,
+    rowCount: attempt.rows || 0,
+    teamCount: Object.keys(attempt.teams || {}).length,
+    warnings: attempt.warnings || []
+  }));
+}
+
+function loadSource_(source) {
+  try {
+    const sheet = getSheet_(source);
+    const values = sheet.getDataRange().getDisplayValues();
+    const parsed = parseWaivers_(values, source);
+
+    return {
+      ok: true,
+      source: source.name,
+      spreadsheetName: sheet.getParent().getName(),
+      spreadsheetId: sheet.getParent().getId(),
+      sheetName: sheet.getName(),
+      rows: sheet.getLastRow(),
+      columns: sheet.getLastColumn(),
+      selectedColumns: parsed.columns,
+      preview: preview_(sheet),
+      teams: parsed.teams,
+      warnings: parsed.warnings
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: source.name,
+      error: message_(err),
+      teams: {},
+      warnings: []
+    };
+  }
+}
+
+function getSheet_(source) {
+  const ss = source.type === 'active' ? activeSpreadsheet_() : configuredSpreadsheet_();
+
+  if (source.tab) {
+    const sheet = ss.getSheetByName(source.tab);
+    if (!sheet) throw new Error(`Tab "${source.tab}" was not found.`);
+    return sheet;
+  }
+
+  const sheets = ss.getSheets();
+  if (!sheets.length) throw new Error('Spreadsheet has no tabs.');
+  return sheets[0];
+}
+
+function activeSpreadsheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('No active spreadsheet is linked to this Apps Script project.');
+  return ss;
+}
+
+function configuredSpreadsheet_() {
+  if (!CONFIG.WAIVER_SHEET_ID || CONFIG.WAIVER_SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+    throw new Error('CONFIG.WAIVER_SHEET_ID is not set.');
+  }
+  return SpreadsheetApp.openById(CONFIG.WAIVER_SHEET_ID);
+}
+
+function parseWaivers_(values, source) {
+  const teams = {};
+  const warnings = [];
+
+  if (!values || values.length < 2) {
+    return { teams, columns: source.columns, warnings: ['No response rows found.'] };
+  }
+
+  const header = values[0].map(value => clean_(value));
+  const columns = {
+    team: column_(header, source.headers.team, source.columns.team),
+    first: column_(header, source.headers.first, source.columns.first),
+    last: column_(header, source.headers.last, source.columns.last)
+  };
+
+  Object.keys(columns).forEach(key => {
+    if (columns[key] < 0 || columns[key] >= header.length) {
+      warnings.push(`${key} column is outside the sheet range.`);
+    }
   });
-  return result;
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const team = clean_(row[columns.team]);
+    const first = clean_(row[columns.first]);
+    const last = clean_(row[columns.last]);
+
+    if (!team || !first || !last) continue;
+    if (!teams[team]) teams[team] = {};
+
+    const key = normalizeKey_(`${first}|${last}`);
+    if (!teams[team][key]) teams[team][key] = `${titleCase_(first)} ${titleCase_(last)}`;
+  }
+
+  const result = {};
+  Object.keys(teams).sort((a, b) => a.localeCompare(b)).forEach(team => {
+    result[team] = Object.values(teams[team]).sort((a, b) => a.localeCompare(b));
+  });
+
+  if (Object.keys(result).length === 0) warnings.push('No complete team/name rows found.');
+  return { teams: result, columns, warnings };
 }
 
-function getWaiverSheet_() {
-  const spreadsheet = CONFIG.WAIVER_SHEET_ID
-    ? SpreadsheetApp.openById(CONFIG.WAIVER_SHEET_ID)
-    : SpreadsheetApp.getActiveSpreadsheet();
+function column_(header, names, fallback) {
+  const normalizedHeader = header.map(normalizeHeader_);
+  const normalizedNames = names.map(normalizeHeader_);
 
-  if (!spreadsheet) {
-    throw new Error('No active waiver spreadsheet found. Either bind this Apps Script project to the waiver response spreadsheet, or set CONFIG.WAIVER_SHEET_ID in Code.gs.');
+  for (let i = 0; i < normalizedHeader.length; i++) {
+    if (normalizedNames.includes(normalizedHeader[i])) return i;
   }
 
-  const sheet = CONFIG.WAIVER_TAB
-    ? spreadsheet.getSheetByName(CONFIG.WAIVER_TAB)
-    : spreadsheet.getSheets()[0];
-
-  if (!sheet) {
-    throw new Error(CONFIG.WAIVER_TAB
-      ? `Waiver tab "${CONFIG.WAIVER_TAB}" was not found.`
-      : 'No sheets were found in the waiver spreadsheet.');
+  for (let i = 0; i < normalizedHeader.length; i++) {
+    if (normalizedNames.some(name => name && normalizedHeader[i].includes(name))) return i;
   }
 
-  return sheet;
+  return fallback;
 }
 
-function findColumn_(header, names, fallbackIndex) {
-  const exact = names.map(name => name.toLowerCase());
-  for (let i = 0; i < header.length; i++) {
-    if (exact.includes(header[i])) return i;
-  }
-  for (let i = 0; i < header.length; i++) {
-    if (names.some(name => header[i].includes(name.toLowerCase()))) return i;
-  }
-  return fallbackIndex;
+function preview_(sheet) {
+  const rows = Math.min(sheet.getLastRow(), 5);
+  const columns = Math.min(sheet.getLastColumn(), 16);
+  if (!rows || !columns) return [];
+  return sheet.getRange(1, 1, rows, columns).getDisplayValues();
+}
+
+function clean_(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function titleCase_(value) {
+  return clean_(value).split(' ').map(part => {
+    return part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : '';
+  }).join(' ');
+}
+
+function normalizeHeader_(value) {
+  return clean_(value)
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeKey_(value) {
+  return clean_(value).toLowerCase();
+}
+
+function message_(err) {
+  return err && err.message ? err.message : String(err);
 }
