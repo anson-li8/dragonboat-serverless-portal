@@ -1,5 +1,5 @@
 var CONFIG = {
-  WAIVER_SHEET_ID: 'YOUR_SHEET_ID_HERE',
+  WAIVER_SHEET_ID: '1_YHAQLY49p9jxwWPONZi2w6OpmlNiZb_p7K-4E-YlUQ',
   WAIVER_TAB: 'Sheet1'
 };
 
@@ -30,7 +30,8 @@ var SOURCES = [
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('MDBF 2026 Check-in')
+    .setTitle('Milwaukee Dragon Boat Festival 2026 Check-in')
+    .setFaviconUrl('https://horizons-cdn.hostinger.com/e22d90ec-431c-427c-8f3e-ca594edfa29b/f27fbe95b079b69cee049756ab048b60.png')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
