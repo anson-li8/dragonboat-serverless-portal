@@ -366,12 +366,14 @@ function buildPracticeEmailBody(team) {
 function buildCampsiteEmailBody(team) {
   const firstName = team.manager.split(/[\s(]/)[0] || 'Team Captain';
   const teamLabel = team.teamName || team.sponsor;
-  return `Hi ${firstName},\n\n` +
-         `This is a reminder from the Milwaukee Dragon Boat Festival organizers.\n\n` +
-         `Our records show that ${teamLabel} has not yet signed up for a team campsite.\n\n` +
-         `Please complete your campsite signup by the deadline on Tuesday, July 2nd, 2026, using the link below:\n${CONFIG.CAMPSITE_SIGNUP_LINK}\n\n` +
-         `Festival Date: ${CONFIG.FESTIVAL_DATE}\n\n` +
-         `Thank you,\n${CONFIG.SENDER_NAME}\n${CONFIG.REPLY_TO_EMAIL}`;
+  return `Hello ${firstName},\n\n` +
+       `Just a friendly reminder to please click on the link below to reserve your spot in the team village by the end of today.\n\n` +
+       `Our records show that ${teamLabel} has not yet reserved a team campsite.\n\n` +
+       `During the festival, this campsite will serve as a place where your team can relax, gather, and hang out when they are not racing. Each team is allowed one campsite. While your reserved space is a 10 ft × 10 ft spot, your team is welcome to spread out in front of and behind your tent.\n\n` +
+       `Please complete your team's campsite reservation by the end of today using the link below:\n${CONFIG.CAMPSITE_SIGNUP_LINK}\n\n` +
+       `Festival Date: ${CONFIG.FESTIVAL_DATE}\n\n` +
+       `Thank you for your kind support of the Milwaukee Dragon Boat Festival!\n\n` +
+       `${CONFIG.SENDER_NAME}\n${CONFIG.REPLY_TO_EMAIL}`;
 }
 
 function isValidYear(val) {
