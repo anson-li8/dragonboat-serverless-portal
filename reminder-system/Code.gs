@@ -15,6 +15,9 @@ const CONFIG = {
   CREATE_DRAFTS_ONLY    : true,  // Keep as true to test in your Gmail Drafts
   WAIVER_SUBJECT        : '[Milwaukee Dragon Boat Festival] Waiver Reminder – {TEAM_NAME} ({COUNT}/{THRESHOLD} done)',
   PRACTICE_SUBJECT      : '[Milwaukee Dragon Boat Festival] Practice Registration Reminder – {TEAM_NAME}',
+  // NEW CAMPSITE CONSTANTS
+  CAMPSITE_SIGNUP_LINK  : 'WAITING_FOR_LINK', 
+  CAMPSITE_SUBJECT      : '[Milwaukee Dragon Boat Festival] Team Campsite Signup Reminder – {TEAM_NAME}'
 };
 
 // depends on the structure of your registration and waiver sheets
@@ -25,7 +28,8 @@ const REG_COLS = {
   MANAGER: 4,      
   EMAIL: 5,        
   PRACTICE: 11,    
-  WAIVERS_DONE: 12 
+  WAIVERS_DONE: 12,
+  CAMPSITE: 13       // NEW: Column N (0-indexed = 13)
 };
 const WAV_COLS = {
   TIMESTAMP: 0,    
@@ -69,21 +73,19 @@ function getDailyEmailActions() {
   const startSending = new Date(CONFIG.VALID_YEAR, 5, 21);  // June 20 (Month 5 is June)
   const practiceStart = new Date(CONFIG.VALID_YEAR, 5, 30); // June 30 (Forcing practice start)
   const dailyStart = new Date(CONFIG.VALID_YEAR, 6, 5);     // July 5 (Day after July 4)
-  let actions = { sendWaivers: false, sendPractice: false };
+  let actions = { sendWaivers: false, sendPractice: false, sendCampsite: true };
   if (currentDate < startSending) {
-    actions = { sendWaivers: false, sendPractice: false };
+    actions = { sendWaivers: false, sendPractice: false, sendCampsite: true };
   } else if (currentDate >= dailyStart) {
-    actions = { sendWaivers: true, sendPractice: true };
+    actions = { sendWaivers: true, sendPractice: true, sendCampsite: true };
   } else {
     // btw June 20 and July 4: Staggered sending
     const diffTime = Math.abs(currentDate - startSending);
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays % 7 === 0) {
-      // Day 0 of the week (e.g., June 20, June 27): Send Waivers
-      actions = { sendWaivers: true, sendPractice: false };
+      actions = { sendWaivers: true, sendPractice: false, sendCampsite: true };
     } else if (diffDays % 7 === 1) {
-      // Day 1 of the week (e.g., June 21, June 28): Send Practice
-      actions = { sendWaivers: false, sendPractice: true };
+      actions = { sendWaivers: false, sendPractice: true, sendCampsite: true };
     }
   }
   // strict rule override: Practice reminders CANNOT go out before June 30th
@@ -93,9 +95,7 @@ function getDailyEmailActions() {
   return actions;
 }
 
-// replace the top line of runEngine to accept 'actions'
-function runEngine(isDryRun, isTrigger, actions = { sendWaivers: true, sendPractice: true }) {
-  try {
+function runEngine(isDryRun, isTrigger, actions = { sendWaivers: true, sendPractice: true, sendCampsite: true }) {  try {
     const ss = SpreadsheetApp.openById(CONFIG.REGISTRATION_SHEET_ID);
     const dashSheet = ss.getSheetByName(CONFIG.STATUS_TAB) || ss.insertSheet(CONFIG.STATUS_TAB);
     const overrides = loadDashboardOverrides(dashSheet);
@@ -160,6 +160,7 @@ function loadRegistrationTeams(ss) {
       manager: String(row[REG_COLS.MANAGER] || '').trim(),
       emails: parseEmails(row[REG_COLS.EMAIL]),
       practiceReg: (row[REG_COLS.PRACTICE] == 1 || row[REG_COLS.PRACTICE] === true),
+      campsiteReg: (row[REG_COLS.CAMPSITE] == 1 || row[REG_COLS.CAMPSITE] === true), // NEW
       waiverCount: 0,
       matchConfidence: 'UNMATCHED',
       matchedWaiverKey: '',
@@ -309,6 +310,11 @@ function processEmails(teams, overrides, actions) {
       const subject = CONFIG.PRACTICE_SUBJECT.replace('{TEAM_NAME}', team.teamName || team.sponsor);
       sendOrDraft(team.emails, subject, buildPracticeEmailBody(team));
     }
+    // Only send if schedule allows Campsite
+    if (actions.sendCampsite && !team.campsiteReg) {
+      const subject = CONFIG.CAMPSITE_SUBJECT.replace('{TEAM_NAME}', team.teamName || team.sponsor);
+      sendOrDraft(team.emails, subject, buildCampsiteEmailBody(team));
+    }
   }
 }
 
@@ -347,6 +353,17 @@ function buildPracticeEmailBody(team) {
          `This is a reminder from the Milwaukee Dragon Boat Festival organizers.\n\n` +
          `Our records show that ${teamLabel} has not yet registered for a practice session.\n\n` +
          `Please register for your practice track here:\n${CONFIG.PRACTICE_SIGNUP_LINK}\n\n` +
+         `Festival Date: ${CONFIG.FESTIVAL_DATE}\n\n` +
+         `Thank you,\n${CONFIG.SENDER_NAME}\n${CONFIG.REPLY_TO_EMAIL}`;
+}
+
+function buildCampsiteEmailBody(team) {
+  const firstName = team.manager.split(/[\s(]/)[0] || 'Team Captain';
+  const teamLabel = team.teamName || team.sponsor;
+  return `Hi ${firstName},\n\n` +
+         `This is a reminder from the Milwaukee Dragon Boat Festival organizers.\n\n` +
+         `Our records show that ${teamLabel} has not yet signed up for a team campsite.\n\n` +
+         `Please complete your campsite signup by the deadline on Tuesday, July 2nd, 2026, using the link below:\n${CONFIG.CAMPSITE_SIGNUP_LINK}\n\n` +
          `Festival Date: ${CONFIG.FESTIVAL_DATE}\n\n` +
          `Thank you,\n${CONFIG.SENDER_NAME}\n${CONFIG.REPLY_TO_EMAIL}`;
 }
