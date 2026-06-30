@@ -239,17 +239,16 @@ function matchTeams(teams, waiverMap, overrides) {
 }
 
 function updateStatusDashboard(dashSheet, teams, overrides) {
-  // FIXED: using dashSheet.clear() properly cleans contents, formats, and validations at the Sheet level
   dashSheet.clear();
   const DASH_COLS = [
     'Sponsor', 'Team Name', 'Manager', 'Email(s)',
-    'Practice', 'Waivers Signed', 'Complete', 'Status',
+    'Practice', 'Campsite', 'Waivers Signed', 'Complete', 'Status',
     'Match Confidence', 'Manual Match Link', 'Skip Email?', 'Notes', 'Last Updated'
   ];
   const headerRange = dashSheet.getRange(1, 1, 1, DASH_COLS.length);
   headerRange.setValues([DASH_COLS]).setBackground('#1C3557').setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(10).setFontFamily('Arial');
   dashSheet.setFrozenRows(1);
-  const widths = [150, 180, 140, 220, 70, 95, 70, 150, 120, 180, 85, 250, 130];
+    const widths = [150, 180, 140, 220, 70, 70, 95, 70, 150, 120, 180, 85, 250, 130];
   widths.forEach((w, i) => dashSheet.setColumnWidth(i + 1, w));
   if (teams.length === 0) return;
   const now = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
@@ -263,16 +262,23 @@ function updateStatusDashboard(dashSheet, teams, overrides) {
     const teamOverride = overrides[t.key] || { manualMatch: '', skipEmail: false };
     rows.push([
       t.sponsor, t.teamName, t.manager, t.emails.join(', '),
-      t.practiceReg ? 'Yes' : 'No', t.waiverCount, isComplete ? 'Yes' : 'No',
+      t.practiceReg ? 'Yes' : 'No', 
+      t.campsiteReg ? 'Yes' : 'No', // NEW CAMPSITE FIELD
+      t.waiverCount, isComplete ? 'Yes' : 'No',
       statusText, t.matchConfidence, teamOverride.manualMatch, teamOverride.skipEmail,
       t.notes.join(' | '), now
     ]);
   }
+  
   const dataRange = dashSheet.getRange(2, 1, rows.length, DASH_COLS.length);
   dataRange.setValues(rows).setFontFamily('Arial').setFontSize(10);
-  dashSheet.getRange(2, 11, rows.length, 1).insertCheckboxes();
+  
+  // 4. Shift the Checkbox column from 11 to 12 because we added a column
+  dashSheet.getRange(2, 12, rows.length, 1).insertCheckboxes();
+  
+  // 5. Shift the Status color-checker from index 7 to 8
   for (let i = 0; i < rows.length; i++) {
-    const status = rows[i][7];
+    const status = rows[i][8]; 
     let color = '#FFFFFF';
     if (status === 'COMPLETE') color = '#C6EFCE'; 
     else if (status.includes('IN PROGRESS')) color = '#BDD7EE'; 
