@@ -134,8 +134,8 @@ function loadDashboardOverrides(dashSheet) {
     const teamName = String(data[i][1] || '').trim();
     const key = norm(sponsor + '|' + teamName);
     overrides[key] = {
-      manualMatch: String(data[i][9] || '').trim(),
-      skipEmail: data[i][10] === true
+      manualMatch: String(data[i][10] || '').trim(), // SHIFTED: Now reads Column K (Index 10)
+      skipEmail: data[i][11] === true                // SHIFTED: Now reads Column L (Index 11)
     };
   }
   return overrides;
