@@ -70,8 +70,8 @@ function getDailyEmailActions() {
   const dateString = Utilities.formatDate(today, 'America/Chicago', 'yyyy-MM-dd');
   const [year, month, day] = dateString.split('-').map(Number);
   const currentDate = new Date(year, month - 1, day);
-  const startSending = new Date(CONFIG.VALID_YEAR, 5, 21);  // June 20 (Month 5 is June)
-  const practiceStart = new Date(CONFIG.VALID_YEAR, 5, 30); // June 30 (Forcing practice start)
+  const startSending = new Date(CONFIG.VALID_YEAR, 5, 21);  // June 21 (Month 5 is June)
+  const practiceStart = new Date(CONFIG.VALID_YEAR, 5, 30); // June 30 (Scheduled Date)
   const dailyStart = new Date(CONFIG.VALID_YEAR, 6, 5);     // July 5 (Day after July 4)
   let actions = { sendWaivers: false, sendPractice: false, sendCampsite: true };
   if (currentDate < startSending) {
@@ -79,18 +79,14 @@ function getDailyEmailActions() {
   } else if (currentDate >= dailyStart) {
     actions = { sendWaivers: true, sendPractice: true, sendCampsite: true };
   } else {
-    // btw June 20 and July 4: Staggered sending
     const diffTime = Math.abs(currentDate - startSending);
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays % 7 === 0) {
-      actions = { sendWaivers: true, sendPractice: false, sendCampsite: true };
-    } else if (diffDays % 7 === 1) {
-      actions = { sendWaivers: false, sendPractice: true, sendCampsite: true };
+      actions.sendWaivers = true;
     }
-  }
-  // strict rule override: Practice reminders CANNOT go out before June 30th
-  if (currentDate < practiceStart) {
-    actions.sendPractice = false;
+    if (currentDate.getTime() === practiceStart.getTime()) {
+      actions.sendPractice = true;
+    }
   }
   return actions;
 }
